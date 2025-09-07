@@ -162,7 +162,7 @@ Document Retrieval (FAISS)
     ↓
 Context Preparation
     ↓
-LLM Generation (Groq LLaMA)
+LLM Generation (Grok AI)
     ↓
 Response with Sources
 ```

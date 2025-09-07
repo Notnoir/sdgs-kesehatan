@@ -21,10 +21,8 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: "5mb" }));
 
-// Initialize Groq client
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY || "mock",
-});
+// Initialize Groq client is no longer needed as we're using Grok AI
+// We'll keep this comment for reference
 
 // Initialize RAG Chatbot
 const ragChatbot = new RAGChatbot();
@@ -250,6 +248,26 @@ app.post("/api/chat/add-document", async (req, res) => {
 // Health check endpoint for Docker
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok", timestamp: new Date().toISOString() });
+});
+
+// Chatbot status endpoint
+app.get("/api/status", async (req, res) => {
+  try {
+    const stats = await ragChatbot.getStats();
+    const mockMode = process.env.AI_MODE === "mock" || !process.env.XAI_API_KEY || process.env.XAI_API_KEY === "mock" || process.env.XAI_API_KEY === "your_xai_api_key_here";
+    
+    res.json({
+      mockMode: mockMode,
+      llmProvider: "Grok AI (xAI)",
+      model: "grok-1",
+      totalDocuments: stats.vectorStore?.documentCount || 0,
+      isInitialized: stats.isInitialized,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error("Error getting chatbot status:", error);
+    res.status(500).json({ error: "Failed to get chatbot status" });
+  }
 });
 
 const PORT = process.env.PORT || 4000;

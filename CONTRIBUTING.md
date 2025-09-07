@@ -8,7 +8,7 @@ Terima kasih atas minat Anda untuk berkontribusi pada project SDGs Kesehatan den
 
 - Node.js 16+ dan npm
 - Git
-- Groq API key (untuk AI chatbot)
+- xAI API key (untuk Grok AI chatbot)
 
 ### 1. Clone Repository
 
@@ -22,7 +22,7 @@ cd project-sdgs-kesehatan
 ```bash
 # Backend
 cp backend/.env.example backend/.env
-# Edit backend/.env dengan Groq API key Anda
+# Edit backend/.env dengan xAI API key Anda untuk Grok AI
 
 # Frontend
 cp frontend-react/.env.example frontend-react/.env

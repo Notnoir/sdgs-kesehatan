@@ -1,12 +1,14 @@
-// RAG Chatbot with Groq LLM
+// RAG Chatbot with Groq AI
 const Groq = require("groq-sdk");
 const DocumentProcessor = require("./documentProcessor");
 const VectorStoreManager = require("./vectorStoreManager");
 
 class RAGChatbot {
   constructor() {
+    // Initialize Groq client with API key
+    this.groqApiKey = process.env.GROQ_API_KEY || "mock";
     this.groq = new Groq({
-      apiKey: process.env.GROQ_API_KEY || "mock",
+      apiKey: this.groqApiKey,
     });
     this.documentProcessor = new DocumentProcessor();
     this.vectorStore = new VectorStoreManager();
@@ -120,8 +122,10 @@ class RAGChatbot {
     if (
       process.env.AI_MODE === "mock" ||
       !process.env.GROQ_API_KEY ||
-      process.env.GROQ_API_KEY === "mock"
+      process.env.GROQ_API_KEY === "mock" ||
+      process.env.GROQ_API_KEY === "your_groq_api_key_here"
     ) {
+      console.log("Using mock response mode - no valid Groq API key");
       return this.generateMockResponse(message, context);
     }
 
@@ -153,14 +157,22 @@ ${historyContext}
 
 Jawab pertanyaan berikut dengan berdasarkan konteks di atas:`;
 
+      // Generate response using Groq LLaMA
       const completion = await this.groq.chat.completions.create({
         messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: message },
+          {
+            role: "system",
+            content: systemPrompt,
+          },
+          {
+            role: "user",
+            content: message,
+          },
         ],
-        model: "llama3-8b-8192",
-        temperature: 0.3, // Lower temperature for more focused responses
+        model: "llama-3.1-8b-instant", // Updated to supported model
+        temperature: 0.3,
         max_tokens: 800,
+        top_p: 1,
       });
 
       const answer =
@@ -181,8 +193,100 @@ Jawab pertanyaan berikut dengan berdasarkan konteks di atas:`;
     // Analyze message for health-related keywords
     const messageLower = message.toLowerCase();
 
+    // Daftar kata kunci terkait kesehatan
+    const healthKeywords = [
+      "demam",
+      "panas",
+      "batuk",
+      "pilek",
+      "sakit",
+      "nyeri",
+      "pusing",
+      "mual",
+      "muntah",
+      "diare",
+      "diet",
+      "makan",
+      "nutrisi",
+      "gizi",
+      "olahraga",
+      "latihan",
+      "sehat",
+      "penyakit",
+      "obat",
+      "dokter",
+      "rumah sakit",
+      "klinik",
+      "gejala",
+      "diagnosa",
+      "terapi",
+      "pengobatan",
+      "vaksin",
+      "imunisasi",
+      "alergi",
+      "operasi",
+      "darah",
+      "jantung",
+      "paru",
+      "ginjal",
+      "hati",
+      "otak",
+      "tulang",
+      "kulit",
+      "mata",
+      "gigi",
+      "telinga",
+      "hidung",
+      "tenggorokan",
+      "perut",
+      "usus",
+      "kandungan",
+    ];
+
+    // Periksa apakah pertanyaan terkait kesehatan
+    const isHealthRelated = healthKeywords.some((keyword) =>
+      messageLower.includes(keyword)
+    );
+
+    // Kata-kata yang jelas tidak terkait kesehatan
+    const nonHealthKeywords = [
+      "ban",
+      "mobil",
+      "motor",
+      "tambal",
+      "bengkel",
+      "mesin",
+      "kendaraan",
+    ];
+    const isDefinitelyNotHealth = nonHealthKeywords.some((keyword) =>
+      messageLower.includes(keyword)
+    );
+
     let response = "";
 
+    // Jika pertanyaan jelas tidak terkait kesehatan
+    if (isDefinitelyNotHealth) {
+      response =
+        "Maaf, pertanyaan Anda tidak terkait dengan kesehatan. Saya adalah asisten AI kesehatan yang dirancang untuk menjawab pertanyaan seputar kesehatan dan medis. Mohon ajukan pertanyaan terkait kesehatan agar saya dapat membantu Anda dengan lebih baik.";
+
+      return {
+        answer: response,
+        contextualizedQuestion: message,
+      };
+    }
+
+    // Jika pertanyaan tidak mengandung kata kunci kesehatan
+    if (!isHealthRelated) {
+      response =
+        "Maaf, saya tidak dapat memahami pertanyaan Anda dengan baik. Saya adalah asisten AI kesehatan yang dapat membantu menjawab pertanyaan seputar kesehatan, gejala penyakit, tips hidup sehat, dan informasi medis umum. Mohon ajukan pertanyaan yang lebih spesifik terkait kesehatan.";
+
+      return {
+        answer: response,
+        contextualizedQuestion: message,
+      };
+    }
+
+    // Jika pertanyaan terkait kesehatan, berikan respons sesuai kata kunci
     if (messageLower.includes("demam") || messageLower.includes("panas")) {
       response =
         "Berdasarkan informasi kesehatan yang tersedia, untuk mengatasi demam:\n\n" +

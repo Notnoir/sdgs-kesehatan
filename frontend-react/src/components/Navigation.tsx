@@ -1,5 +1,9 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import "./Navigation.css";
+
+// Ensure the CSS file exists and is properly imported
+// If you're using Tailwind CSS, make sure it's configured correctly
 
 const Navigation: React.FC = () => {
   const location = useLocation();

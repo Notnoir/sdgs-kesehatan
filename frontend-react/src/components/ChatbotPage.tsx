@@ -113,7 +113,7 @@ const ChatbotPage: React.FC = () => {
               </span>
               <span>
                 Status: {chatbotStatus.mockMode ? "Mode Testing" : "Online"} |
-                Provider: {chatbotStatus.llmProvider} | Dokumen:{" "}
+                Provider: {chatbotStatus.llmProvider || "Grok AI"} | Model: {chatbotStatus.model || "Grok-1"} | Dokumen:{" "}
                 {chatbotStatus.totalDocuments || 0}
               </span>
             </div>
