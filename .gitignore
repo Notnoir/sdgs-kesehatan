@@ -72,3 +72,17 @@ Thumbs.db
 # Production builds
 build/
 dist/
+
+# RAG System specific
+backend/rag/vectorstore/
+*.faiss
+*.pkl
+*.index
+
+# AI/ML models and cache
+.transformers/
+.huggingface/
+
+# Temporary files
+*.tmp
+*.temp

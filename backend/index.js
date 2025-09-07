@@ -14,10 +14,33 @@ const express = require("express");
 const bodyParser = require("body-parser");
 const cors = require("cors");
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const Groq = require("groq-sdk");
+const RAGChatbot = require("./rag/ragChatbot");
 
 const app = express();
 app.use(cors());
 app.use(bodyParser.json({ limit: "5mb" }));
+
+// Initialize Groq client
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY || "mock",
+});
+
+// Initialize RAG Chatbot
+const ragChatbot = new RAGChatbot();
+console.log("Initializing RAG Chatbot...");
+ragChatbot
+  .initialize()
+  .then((success) => {
+    if (success) {
+      console.log("RAG Chatbot initialized successfully");
+    } else {
+      console.log("RAG Chatbot initialized in fallback mode");
+    }
+  })
+  .catch((error) => {
+    console.error("Failed to initialize RAG Chatbot:", error);
+  });
 
 // Simple S3 client (for MinIO or AWS)
 const s3 = new S3Client({
@@ -151,6 +174,76 @@ app.get("/api/consultations", async (req, res) => {
     console.warn("Database not available for consultations:", err.message);
     // Return empty array when database is not available
     res.json([]);
+  }
+});
+
+// RAG-powered AI Chatbot endpoint
+app.post("/api/chat", async (req, res) => {
+  try {
+    const { message, sessionId } = req.body;
+
+    if (!message) {
+      return res.status(400).json({ error: "Message is required" });
+    }
+
+    console.log(`Chat request: "${message}" (Session: ${sessionId})`);
+
+    // Use RAG chatbot for enhanced responses
+    const response = await ragChatbot.chat(message, sessionId);
+
+    res.json(response);
+  } catch (error) {
+    console.error("RAG Chatbot error:", error);
+
+    // Fallback response if RAG fails
+    res.json({
+      answer:
+        "Maaf, terjadi gangguan pada sistem AI. Untuk informasi kesehatan yang akurat, saya sarankan untuk berkonsultasi langsung dengan tenaga medis profesional.",
+      sources: ["Fallback Response"],
+      relevantDocs: [],
+      followUpQuestions: [
+        "Apakah Anda ingin mencoba bertanya lagi?",
+        "Apakah ada informasi kesehatan lain yang bisa saya bantu?",
+      ],
+      sessionId: sessionId || `fallback_${Date.now()}`,
+    });
+  }
+});
+
+// RAG system management endpoints
+app.get("/api/chat/stats", async (req, res) => {
+  try {
+    const stats = await ragChatbot.getStats();
+    res.json(stats);
+  } catch (error) {
+    console.error("Error getting RAG stats:", error);
+    res.status(500).json({ error: "Failed to get system stats" });
+  }
+});
+
+app.post("/api/chat/clear-session", async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    const result = ragChatbot.clearSession(sessionId);
+    res.json(result);
+  } catch (error) {
+    console.error("Error clearing session:", error);
+    res.status(500).json({ error: "Failed to clear session" });
+  }
+});
+
+app.post("/api/chat/add-document", async (req, res) => {
+  try {
+    const { filePath } = req.body;
+    if (!filePath) {
+      return res.status(400).json({ error: "File path is required" });
+    }
+
+    const result = await ragChatbot.addDocument(filePath);
+    res.json(result);
+  } catch (error) {
+    console.error("Error adding document:", error);
+    res.status(500).json({ error: "Failed to add document" });
   }
 });
 

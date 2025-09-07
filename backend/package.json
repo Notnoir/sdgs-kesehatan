@@ -12,10 +12,18 @@
   "license": "ISC",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.882.0",
+    "@langchain/community": "^0.3.55",
+    "@langchain/core": "^0.3.75",
     "body-parser": "^2.2.0",
+    "cheerio": "^1.1.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
-    "mysql2": "^3.14.4"
+    "faiss-node": "^0.5.1",
+    "groq-sdk": "^0.32.0",
+    "langchain": "^0.3.33",
+    "mammoth": "^1.10.0",
+    "mysql2": "^3.14.4",
+    "pdf-parse": "^1.1.1"
   }
 }

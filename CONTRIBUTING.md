@@ -1,53 +1,78 @@
-# Contributing to SDGs Kesehatan
+# Contributing to SDGs Kesehatan - AI Health Assistant
 
-Terima kasih atas minat Anda untuk berkontribusi pada project SDGs Kesehatan!
+Terima kasih atas minat Anda untuk berkontribusi pada project SDGs Kesehatan dengan teknologi RAG (Retrieval-Augmented Generation)!
 
-## Development Setup
+## 🚀 Development Setup
 
-1. **Clone repository:**
+### Prerequisites
+
+- Node.js 16+ dan npm
+- Git
+- Groq API key (untuk AI chatbot)
+
+### 1. Clone Repository
 
 ```bash
 git clone https://github.com/USERNAME/project-sdgs-kesehatan.git
 cd project-sdgs-kesehatan
 ```
 
-2. **Setup environment:**
+### 2. Setup Environment Variables
 
 ```bash
-# Copy environment template
+# Backend
 cp backend/.env.example backend/.env
-# Edit .env dengan konfigurasi lokal Anda
+# Edit backend/.env dengan Groq API key Anda
+
+# Frontend
+cp frontend-react/.env.example frontend-react/.env
+# Environment variables biasanya sudah default dengan benar
 ```
 
-3. **Run dengan Docker:**
+### 3. Install Dependencies & Run
 
 ```bash
-cd infra
-docker compose up --build
-```
-
-4. **Atau run secara terpisah untuk development:**
-
-```bash
-# Terminal 1 - Backend
+# Terminal 1 - Backend RAG System
 cd backend
 npm install
 npm start
 
-# Terminal 2 - Frontend
-cd frontend
+# Terminal 2 - React Frontend
+cd frontend-react
 npm install
-npm run dev
-
-# Terminal 3 - Database (optional, atau gunakan Docker)
-docker run --name mysql-dev -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=sdgs_db -p 3306:3306 -d mysql:8
+npm start
 ```
 
-## Code Style
+### 4. Access Application
 
-- **Backend:** Gunakan ES6+ features, async/await
-- **Frontend:** TypeScript strict mode, React hooks
-- **Database:** Gunakan prepared statements
+- Frontend: http://localhost:3000
+- Backend API: http://localhost:4000
+- AI Assistant: http://localhost:3000/chatbot
+
+## 🛠 Development Guidelines
+
+### Code Style
+
+#### Backend (Node.js + RAG)
+
+- **ES6+ features**: async/await, destructuring
+- **RAG Components**: Follow LangChain patterns
+- **Error Handling**: Graceful fallbacks untuk AI failures
+- **Logging**: Console logs untuk debugging RAG pipeline
+
+#### Frontend (React + TypeScript)
+
+- **TypeScript strict mode**: Type safety untuk API responses
+- **React hooks**: Functional components dengan hooks
+- **Tailwind CSS**: Utility-first styling
+- **API Types**: Defined di `types/api.ts`
+
+#### AI/ML Components
+
+- **Document Processing**: Support PDF, DOCX, TXT
+- **Vector Store**: FAISS dengan embedding models
+- **Prompt Engineering**: Clear, contextual prompts
+- **Fallback Mechanisms**: Graceful degradation when AI fails
 - **Docker:** Multi-stage builds untuk optimasi
 
 ## Commit Message Format

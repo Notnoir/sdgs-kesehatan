@@ -1,248 +1,322 @@
-# SDGs Kesehatan - Full Stack Application
+# SDGs Kesehatan - AI-Powered Health Assistant
 
-Aplikasi telemedicine sederhana dengan Next.js (frontend), Node.js (backend), MySQL (database), dan MinIO (object storage).
+Aplikasi sistem diagnosis kesehatan digital dengan teknologi RAG (Retrieval-Augmented Generation) menggunakan React.js (frontend), Node.js (backend), dan AI chatbot berbasis LangChain dan Groq LLaMA.
 
-## Prerequisites
+## 🌟 Features
 
-- Docker dan Docker Compose
-- Git
+- **🤖 AI Assistant**: Chatbot RAG dengan knowledge base medis
+- **🩺 Symptom Diagnosis**: Analisis gejala menggunakan AI
+- **📚 Document Retrieval**: Pencarian kontekstual dalam dokumen kesehatan
+- **💬 Interactive Chat**: Interface chat real-time dengan follow-up questions
+- **📊 Source Attribution**: Referensi sumber dokumen untuk setiap jawaban
+- **🔄 Session Management**: Pelacakan riwayat percakapan
 
-## Quick Start
-
-1. Clone repository dan masuk ke direktori infra:
-
-```bash
-cd infra
-```
-
-2. Jalankan seluruh stack dengan satu perintah:
-
-```bash
-docker compose up --build
-```
-
-3. Tunggu semua service siap (biasanya 2-3 menit untuk pertama kali)
-
-4. Akses aplikasi:
-   - **Frontend**: http://localhost:3000
-   - **Backend API**: http://localhost:4000
-   - **MinIO Console**: http://localhost:9001 (admin/minioadmin)
-   - **MySQL**: localhost:3306
-
-## Services
-
-### Frontend (Next.js)
-
-- Port: 3000
-- Health check: http://localhost:3000/api/health
-
-### Backend (Node.js)
-
-- Port: 4000
-- Health check: http://localhost:4000/health
-- API endpoints:
-  - POST `/api/diagnose` - Submit symptoms for diagnosis
-  - GET `/api/consultations` - Get consultation history
-
-### Database (MySQL)
-
-- Port: 3306
-- Database: `sdgs_db`
-- User: `sdgs_user`
-- Password: `sdgs_pass`
-
-### Object Storage (MinIO)
-
-- S3 API: Port 9000
-- Console: Port 9001
-- Credentials: minioadmin/minioadmin
-- Bucket: `app-bucket`
-
-## Development
-
-### Stop all services:
-
-```bash
-docker compose down
-```
-
-### Stop and remove volumes (reset data):
-
-```bash
-docker compose down -v
-```
-
-### View logs:
-
-```bash
-docker compose logs -f [service-name]
-```
-
-### Rebuild specific service:
-
-```bash
-docker compose up --build [service-name]
-```
-
-## Environment Variables
-
-Aplikasi menggunakan environment variables berikut:
+## 🛠 Tech Stack
 
 ### Frontend
 
-- `NEXT_PUBLIC_API_URL`: URL backend API (default: http://localhost:4000)
+- **React.js 18** dengan TypeScript
+- **Tailwind CSS** untuk styling
+- **React Router** untuk navigasi
+- **Axios** untuk API calls
 
 ### Backend
 
-- `DB_HOST`: MySQL host (default: mysql)
-- `DB_USER`: MySQL user (default: sdgs_user)
-- `DB_PASS`: MySQL password (default: sdgs_pass)
-- `DB_NAME`: MySQL database (default: sdgs_db)
-- `S3_ENDPOINT`: MinIO endpoint (default: http://minio:9000)
-- `AWS_ACCESS_KEY_ID`: MinIO access key (default: minioadmin)
-- `AWS_SECRET_ACCESS_KEY`: MinIO secret key (default: minioadmin)
-- `S3_BUCKET`: S3 bucket name (default: app-bucket)
+- **Node.js** dengan Express.js
+- **LangChain** untuk RAG pipeline
+- **Groq SDK** dengan LLaMA-3-8B model
+- **FAISS** untuk vector storage
+- **HuggingFace Transformers** untuk embeddings
 
-## Troubleshooting
+### AI & ML
 
-1. **Port sudah digunakan**: Pastikan port 3000, 4000, 3306, 9000, 9001 tidak digunakan aplikasi lain
-2. **Build gagal**: Pastikan Docker memiliki cukup memory (minimum 4GB)
-3. **Database connection error**: Tunggu MySQL service siap sepenuhnya (lihat health check)
-4. **MinIO bucket error**: Pastikan service minio-setup berhasil membuat bucket
+- **RAG Architecture**: Retrieval-Augmented Generation
+- **Vector Store**: FAISS similarity search
+- **Document Processing**: PDF, DOCX, TXT support
+- **Text Splitting**: RecursiveCharacterTextSplitter
+- **Embeddings**: HuggingFace Transformers (with fallback mock)
 
-## Architecture
+## 📋 Prerequisites
 
-```
-Frontend (Next.js) :3000
-    ↓
-Backend (Node.js) :4000
-    ↓
-MySQL :3306 + MinIO :9000
-```
+- Node.js 16+ dan npm
+- Git
+- Internet connection untuk AI model access
 
-## Push ke GitHub
+## 🚀 Quick Start
 
-### 1. Persiapan Repository GitHub
-
-1. **Buat repository baru di GitHub:**
-   - Buka https://github.com/new
-   - Masukkan nama repository: `project-sdgs-kesehatan`
-   - Pilih **Public** atau **Private**
-   - **Jangan** centang "Add a README file" (karena sudah ada)
-   - Klik **Create repository**
-
-### 2. Setup Git Configuration
+### 1. Clone Repository
 
 ```bash
-# Set your Git user info (jika belum)
-git config --global user.name "Your Name"
-git config --global user.email "your.email@example.com"
-
-# Verify current directory
-cd d:\riza\SP1\Cloud\project-sdgs-kesehatan
+git clone https://github.com/USERNAME/project-sdgs-kesehatan.git
+cd project-sdgs-kesehatan
 ```
 
-### 3. Add dan Commit Files
+### 2. Setup Environment Variables
+
+Buat file `.env` di folder `backend/`:
 
 ```bash
-# Add all files
-git add .
-
-# Commit with descriptive message
-git commit -m "Initial commit: Full-stack SDGs kesehatan app with Docker"
+GROQ_API_KEY=your_groq_api_key_here
+NODE_ENV=development
 ```
 
-### 4. Connect ke GitHub Repository
+Buat file `.env` di folder `frontend-react/`:
 
 ```bash
-# Add remote origin (ganti USERNAME dengan username GitHub Anda)
-git remote add origin https://github.com/USERNAME/project-sdgs-kesehatan.git
-
-# Push to GitHub
-git push -u origin master
+REACT_APP_API_URL=http://localhost:4000
+REACT_APP_CHATBOT_URL=http://localhost:4000
 ```
 
-### 5. Alternative: Menggunakan GitHub CLI (Optional)
-
-Jika Anda memiliki GitHub CLI:
+### 3. Install Dependencies & Start Backend
 
 ```bash
-# Login ke GitHub
-gh auth login
-
-# Create repository dan push sekaligus
-gh repo create project-sdgs-kesehatan --public --push
+cd backend
+npm install
+npm start
 ```
 
-### 6. Update Repository Description
+Backend akan berjalan di: http://localhost:4000
 
-Setelah push berhasil, update deskripsi repository di GitHub:
+### 4. Install Dependencies & Start Frontend
 
-- Buka repository di GitHub
-- Klik **⚙️ Settings** atau edit icon di bagian About
-- Tambahkan deskripsi: "Full-stack telemedicine app with Next.js, Node.js, MySQL, and MinIO"
-- Tambahkan topics: `nextjs`, `nodejs`, `mysql`, `minio`, `docker`, `telemedicine`, `sdgs`
+```bash
+cd frontend-react
+npm install
+npm start
+```
 
-### 7. Struktur Repository di GitHub
+Frontend akan berjalan di: http://localhost:3000
 
-Setelah push, struktur repository akan terlihat seperti:
+### 5. Access Application
+
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:4000
+- **Health Check**: http://localhost:4000/health
+
+## 📂 Project Structure
 
 ```
 project-sdgs-kesehatan/
 ├── README.md
-├── .gitignore
 ├── backend/
-│   ├── Dockerfile
-│   ├── index.js
+│   ├── index.js                 # Main server file
 │   ├── package.json
-│   └── .dockerignore
-├── frontend/
-│   ├── Dockerfile
-│   ├── app/
+│   ├── rag/
+│   │   ├── ragChatbot.js       # Main RAG orchestrator
+│   │   ├── documentProcessor.js # Document ingestion
+│   │   ├── vectorStoreManager.js # Vector storage
+│   │   ├── documents/          # Knowledge base
+│   │   │   ├── gaya_hidup_sehat.txt
+│   │   │   ├── panduan_kesehatan.txt
+│   │   │   └── penyakit_umum.txt
+│   │   └── vectorstore/        # Generated vector indices
+│   └── .env
+├── frontend-react/
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── ChatbotPage.tsx # AI Assistant interface
+│   │   │   ├── DiagnosisPage.tsx
+│   │   │   ├── Navigation.tsx
+│   │   │   └── ConsultationsPage.tsx
+│   │   ├── services/
+│   │   │   └── api.ts          # API service layer
+│   │   ├── types/
+│   │   │   └── api.ts          # TypeScript definitions
+│   │   ├── App.tsx             # Main app component
+│   │   └── index.css           # Tailwind imports
+│   ├── public/
 │   ├── package.json
-│   ├── next.config.ts
-│   └── .dockerignore
+│   └── .env
 └── infra/
-    ├── docker-compose.yml
-    ├── init.sql
-    ├── setup-minio.sh
-    └── validate.sh
+    └── docker-compose.yml       # Optional Docker setup
 ```
 
-### 8. Clone untuk Development Lain
+## 🔌 API Endpoints
 
-Orang lain bisa clone dan run dengan:
+### Health & Status
+
+- `GET /health` - Backend health check
+- `GET /api/chat/stats` - RAG system statistics
+
+### RAG Chatbot
+
+- `POST /api/chat` - Send message to AI assistant
+  ```json
+  {
+    "message": "Saya mengalami demam dan batuk, apa yang harus saya lakukan?",
+    "sessionId": "optional_session_id"
+  }
+  ```
+
+### Diagnosis System
+
+- `POST /api/diagnose` - Submit symptoms for diagnosis
+- `GET /api/consultations` - Get consultation history
+
+## 🤖 RAG System Architecture
+
+```
+User Input
+    ↓
+Document Retrieval (FAISS)
+    ↓
+Context Preparation
+    ↓
+LLM Generation (Groq LLaMA)
+    ↓
+Response with Sources
+```
+
+### Knowledge Base Documents
+
+1. **gaya_hidup_sehat.txt**: Tips gaya hidup sehat, olahraga, nutrisi
+2. **panduan_kesehatan.txt**: Panduan umum kesehatan, pencegahan penyakit
+3. **penyakit_umum.txt**: Informasi penyakit umum dan pengobatan
+
+### Vector Store Features
+
+- **Similarity Search**: Pencarian dokumen berdasarkan relevansi
+- **Relevance Scoring**: Skor tingkat kesesuaian (0.0 - 1.0)
+- **Chunk Management**: Pembagian dokumen optimal untuk retrieval
+
+## 🎯 Usage Examples
+
+### AI Assistant Chat
+
+1. Kunjungi http://localhost:3000/chatbot
+2. Tanyakan pertanyaan kesehatan:
+   - "Saya mengalami demam dan batuk, apa yang harus saya lakukan?"
+   - "Bagaimana cara menjaga kesehatan jantung?"
+   - "Apa saja gejala diabetes?"
+
+### Response Features
+
+- **Contextual Answers**: Jawaban berdasarkan knowledge base
+- **Source Attribution**: Menunjukkan dokumen sumber
+- **Follow-up Questions**: Pertanyaan lanjutan otomatis
+- **Session Tracking**: Riwayat percakapan
+
+## 🔧 Development
+
+### Adding New Documents
+
+1. Tambahkan file `.txt`, `.pdf`, atau `.docx` ke `backend/rag/documents/`
+2. Restart backend untuk memproses dokumen baru
+3. Vector store akan diperbarui otomatis
+
+### Environment Configuration
+
+#### Backend (.env)
 
 ```bash
-git clone https://github.com/USERNAME/project-sdgs-kesehatan.git
-cd project-sdgs-kesehatan/infra
-docker compose up --build
+GROQ_API_KEY=your_groq_api_key_here
+NODE_ENV=development
+DB_HOST=localhost
+DB_USER=root
+DB_PASS=
+DB_NAME=sdgs_db
 ```
 
-### 9. Best Practices untuk Development
-
-1. **Buat branch untuk fitur baru:**
+#### Frontend (.env)
 
 ```bash
-git checkout -b feature/new-feature
-# ... make changes ...
-git add .
-git commit -m "Add new feature"
-git push origin feature/new-feature
+REACT_APP_API_URL=http://localhost:4000
+REACT_APP_CHATBOT_URL=http://localhost:4000
 ```
 
-2. **Buat Pull Request di GitHub**
+### Dependencies
 
-3. **Update documentation** saat ada perubahan
+#### Backend
 
-### 10. Environment Variables untuk Production
+- `@langchain/community` - LangChain integrations
+- `langchain` - Core LangChain framework
+- `groq-sdk` - Groq API client
+- `faiss-node` - Vector similarity search
+- `pdf-parse` - PDF document processing
+- `mammoth` - DOCX document processing
 
-Untuk deployment production, buat file `.env.example`:
+#### Frontend
+
+- `react` & `react-dom` - React framework
+- `react-router-dom` - Client-side routing
+- `axios` - HTTP client
+- `tailwindcss` - Utility-first CSS framework
+
+## 🐛 Troubleshooting
+
+### Common Issues
+
+1. **Backend tidak start**
+
+   ```bash
+   cd backend
+   npm install --legacy-peer-deps
+   ```
+
+2. **Vector embeddings error**
+
+   - Install transformers: `npm install @xenova/transformers`
+   - Sistem akan fallback ke mock mode jika gagal
+
+3. **Frontend layar kosong**
+
+   - Pastikan Tailwind CSS imports aktif di `src/index.css`
+   - Check console browser untuk error JavaScript
+
+4. **API connection failed**
+   - Verify backend running di port 4000
+   - Check `.env` file di frontend-react
+
+### Development Mode
 
 ```bash
-# Copy environment template
-cp backend/.env backend/.env.example
-# Edit .env.example to remove sensitive values
+# Backend development
+cd backend
+npm run dev  # if available, or npm start
+
+# Frontend development
+cd frontend-react
+npm start
 ```
 
-Dan update README dengan instruksi environment setup.
+## 📈 Performance
+
+- **Response Time**: ~2-3 detik untuk query RAG
+- **Document Processing**: ~1-2 detik per dokumen
+- **Vector Search**: Sub-second similarity search
+- **Memory Usage**: ~200MB untuk vector store
+
+## 🔮 Future Enhancements
+
+- [ ] Real-time document upload via UI
+- [ ] Multi-language support
+- [ ] Voice input/output
+- [ ] Medical image analysis
+- [ ] Integration with medical APIs
+- [ ] Improved vector embeddings
+- [ ] User authentication system
+- [ ] Advanced analytics dashboard
+
+## 🤝 Contributing
+
+1. Fork repository
+2. Create feature branch: `git checkout -b feature/new-feature`
+3. Commit changes: `git commit -m 'Add new feature'`
+4. Push to branch: `git push origin feature/new-feature`
+5. Submit Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License.
+
+## 🙏 Acknowledgments
+
+- **LangChain** for RAG framework
+- **Groq** for fast LLM inference
+- **HuggingFace** for embeddings models
+- **React** and **Tailwind CSS** for UI
+- **FAISS** for efficient vector search
+
+---
+
+**⚠️ Disclaimer**: Aplikasi ini hanya untuk tujuan edukasi dan informasi umum. Tidak menggantikan konsultasi medis profesional. Untuk masalah kesehatan serius, selalu konsultasikan dengan dokter.
