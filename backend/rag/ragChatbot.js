@@ -75,9 +75,23 @@ class RAGChatbot {
       // Generate response using RAG
       const response = await this.generateResponse(message, context, history);
 
+      // Add document sources to the answer
+      const uniqueSources = [...new Set(relevantDocs.map((doc) => doc.source))];
+      let finalAnswer = response.answer;
+
+      if (
+        uniqueSources.length > 0 &&
+        !response.answer.includes("Maaf, saya adalah asisten kesehatan")
+      ) {
+        finalAnswer += `\n\n📚 **Sumber Informasi:**\n`;
+        uniqueSources.forEach((source, index) => {
+          finalAnswer += `${index + 1}. ${source}\n`;
+        });
+      }
+
       // Update conversation history
       history.push({ role: "user", content: message });
-      history.push({ role: "assistant", content: response.answer });
+      history.push({ role: "assistant", content: finalAnswer });
 
       // Keep only last 10 messages to manage memory
       if (history.length > 10) {
@@ -87,7 +101,7 @@ class RAGChatbot {
       this.conversationHistory.set(sessionId, history);
 
       return {
-        answer: response.answer,
+        answer: finalAnswer,
         sources: relevantDocs.map((doc) => doc.source),
         relevantDocs: relevantDocs.map((doc) => ({
           content: doc.content.substring(0, 200) + "...",
@@ -129,6 +143,15 @@ class RAGChatbot {
       return this.generateMockResponse(message, context);
     }
 
+    // Check if question is health-related
+    if (!this.isHealthRelated(message)) {
+      return {
+        answer:
+          "Maaf, saya adalah asisten kesehatan yang hanya dapat membantu menjawab pertanyaan terkait kesehatan dan medis. Silakan ajukan pertanyaan tentang gejala penyakit, tips kesehatan, atau konsultasi medis.\n\nContoh pertanyaan yang dapat saya bantu:\n• Apa itu demam dan bagaimana mengatasinya?\n• Bagaimana cara menjaga kesehatan jantung?\n• Tips hidup sehat sehari-hari\n• Gejala dan pencegahan penyakit tertentu",
+        contextualizedQuestion: message,
+      };
+    }
+
     try {
       // Prepare conversation context
       const historyContext =
@@ -139,23 +162,25 @@ class RAGChatbot {
               .join("\n")
           : "";
 
-      const systemPrompt = `Anda adalah asisten kesehatan AI yang menggunakan informasi dari dokumen medis untuk memberikan jawaban yang akurat.
+      const systemPrompt = `Anda adalah asisten kesehatan AI yang HANYA membantu dengan topik kesehatan dan medis. 
 
-INSTRUKSI PENTING:
-1. Gunakan informasi dari konteks yang disediakan untuk menjawab pertanyaan
-2. Selalu berikan disclaimer bahwa Anda bukan pengganti konsultasi dokter
-3. Jawab dalam bahasa Indonesia yang mudah dipahami
-4. Jika informasi tidak tersedia dalam konteks, katakan dengan jujur
-5. Berikan saran umum dan pencegahan, bukan diagnosis spesifik
-6. Rujuk ke sumber dokumen jika relevan
+ATURAN KETAT:
+1. HANYA jawab pertanyaan tentang kesehatan, penyakit, gejala, pengobatan, pencegahan, dan gaya hidup sehat
+2. TOLAK semua pertanyaan di luar topik kesehatan (teknologi, politik, olahraga, hiburan, dll)
+3. Jika pertanyaan tidak terkait kesehatan, katakan "Maaf, saya hanya dapat membantu dengan pertanyaan kesehatan"
+4. Gunakan HANYA informasi dari konteks dokumen medis yang disediakan
+5. Jika informasi tidak ada dalam konteks, katakan dengan jujur "Informasi ini tidak tersedia dalam dokumen kesehatan saya"
+6. Selalu berikan disclaimer bahwa Anda bukan pengganti konsultasi dokter
+7. Jangan berikan diagnosis spesifik, hanya saran umum dan pencegahan
+8. Rujuk ke dokter untuk masalah serius
 
-KONTEKS DOKUMEN:
+KONTEKS DOKUMEN KESEHATAN:
 ${context}
 
-RIWAYAT PERCAKAPAN TERAKHIR:
+RIWAYAT PERCAKAPAN:
 ${historyContext}
 
-Jawab pertanyaan berikut dengan berdasarkan konteks di atas:`;
+Jawab HANYA jika pertanyaan terkait kesehatan berdasarkan konteks di atas:`;
 
       // Generate response using Groq LLaMA
       const completion = await this.groq.chat.completions.create({
@@ -169,8 +194,8 @@ Jawab pertanyaan berikut dengan berdasarkan konteks di atas:`;
             content: message,
           },
         ],
-        model: "llama-3.1-8b-instant", // Updated to supported model
-        temperature: 0.3,
+        model: "llama-3.1-8b-instant",
+        temperature: 0.2, // Lower temperature for more consistent refusal behavior
         max_tokens: 800,
         top_p: 1,
       });
@@ -189,7 +214,207 @@ Jawab pertanyaan berikut dengan berdasarkan konteks di atas:`;
     }
   }
 
+  // Function to check if question is health-related
+  isHealthRelated(message) {
+    const messageLower = message.toLowerCase();
+
+    // Health-related keywords
+    const healthKeywords = [
+      // Medical conditions
+      "demam",
+      "panas",
+      "batuk",
+      "pilek",
+      "sakit",
+      "nyeri",
+      "pusing",
+      "mual",
+      "muntah",
+      "diare",
+      "sembelit",
+      "alergi",
+      "asma",
+      "diabetes",
+      "hipertensi",
+      "jantung",
+      "stroke",
+      "kanker",
+      "tumor",
+      "infeksi",
+      "virus",
+      "bakteri",
+      "flu",
+      "covid",
+
+      // Body parts
+      "kepala",
+      "mata",
+      "hidung",
+      "telinga",
+      "tenggorokan",
+      "dada",
+      "perut",
+      "punggung",
+      "tangan",
+      "kaki",
+      "kulit",
+      "rambut",
+      "gigi",
+      "mulut",
+      "lambung",
+      "ginjal",
+      "hati",
+      "paru",
+      "usus",
+      "otot",
+      "tulang",
+      "sendi",
+
+      // Health terms
+      "kesehatan",
+      "sehat",
+      "obat",
+      "pengobatan",
+      "terapi",
+      "dokter",
+      "rumah sakit",
+      "vitamin",
+      "nutrisi",
+      "gizi",
+      "diet",
+      "olahraga",
+      "tidur",
+      "istirahat",
+      "pencegahan",
+      "vaksin",
+      "imunisasi",
+      "check up",
+      "medical",
+      "medis",
+
+      // Symptoms
+      "gejala",
+      "keluhan",
+      "gangguan",
+      "masalah",
+      "kondisi",
+      "sindrom",
+      "penyakit",
+      "luka",
+      "bengkak",
+      "merah",
+      "gatal",
+      "perih",
+      "panas",
+      "dingin",
+      "lemah",
+      "lelah",
+      "stress",
+      "depresi",
+      "cemas",
+      "insomnia",
+
+      // Questions about health
+      "apa itu",
+      "bagaimana cara",
+      "tips",
+      "cara mengobati",
+      "cara mencegah",
+      "bahaya",
+      "efek samping",
+      "penyebab",
+      "faktor risiko",
+    ];
+
+    // Non-health keywords (topics to reject)
+    const nonHealthKeywords = [
+      "politik",
+      "pemilu",
+      "presiden",
+      "menteri",
+      "dpr",
+      "pemerintah",
+      "teknologi",
+      "komputer",
+      "software",
+      "hardware",
+      "programming",
+      "coding",
+      "olahraga",
+      "sepak bola",
+      "basket",
+      "badminton",
+      "tenis",
+      "renang",
+      "hiburan",
+      "film",
+      "musik",
+      "artis",
+      "selebritis",
+      "drama",
+      "ekonomi",
+      "bisnis",
+      "investasi",
+      "saham",
+      "crypto",
+      "bitcoin",
+      "pendidikan",
+      "sekolah",
+      "universitas",
+      "kuliah",
+      "ujian",
+      "agama",
+      "islam",
+      "kristen",
+      "hindu",
+      "buddha",
+      "doa",
+      "ibadah",
+      "travel",
+      "wisata",
+      "liburan",
+      "hotel",
+      "pesawat",
+      "kereta",
+      "makanan", // unless specifically about nutrition/health
+    ];
+
+    // Check for non-health keywords first (immediate rejection)
+    const hasNonHealthKeywords = nonHealthKeywords.some((keyword) =>
+      messageLower.includes(keyword)
+    );
+
+    if (hasNonHealthKeywords) {
+      // Exception: if it's about healthy food/nutrition
+      const isNutritionRelated =
+        messageLower.includes("gizi") ||
+        messageLower.includes("nutrisi") ||
+        messageLower.includes("diet") ||
+        messageLower.includes("sehat");
+
+      if (!isNutritionRelated) {
+        return false;
+      }
+    }
+
+    // Check for health keywords
+    const hasHealthKeywords = healthKeywords.some((keyword) =>
+      messageLower.includes(keyword)
+    );
+
+    return hasHealthKeywords;
+  }
+
   generateMockResponse(message, context) {
+    // Check if question is health-related first
+    if (!this.isHealthRelated(message)) {
+      return {
+        answer:
+          "Maaf, saya adalah asisten kesehatan yang hanya dapat membantu menjawab pertanyaan terkait kesehatan dan medis. Silakan ajukan pertanyaan tentang gejala penyakit, tips kesehatan, atau konsultasi medis.\n\nContoh pertanyaan yang dapat saya bantu:\n• Apa itu demam dan bagaimana mengatasinya?\n• Bagaimana cara menjaga kesehatan jantung?\n• Tips hidup sehat sehari-hari\n• Gejala dan pencegahan penyakit tertentu",
+        contextualizedQuestion: message,
+      };
+    }
+
     // Analyze message for health-related keywords
     const messageLower = message.toLowerCase();
 

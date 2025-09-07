@@ -1,8 +1,5 @@
-// Vector Store Manager for RAG
+// Vector Store Manager for RAG - with Simple Text Similarity Fallback
 const { FaissStore } = require("@langchain/community/vectorstores/faiss");
-const {
-  HuggingFaceTransformersEmbeddings,
-} = require("@langchain/community/embeddings/hf_transformers");
 const { Document } = require("@langchain/core/documents");
 const path = require("path");
 const fs = require("fs").promises;
@@ -13,40 +10,53 @@ class VectorStoreManager {
     this.embeddings = null;
     this.isInitialized = false;
     this.vectorStorePath = path.join(__dirname, "vectorstore");
+    this.documents = []; // Store documents for text-based search fallback
+    this.useTextFallback = false;
   }
 
   async initialize() {
     try {
       console.log("Initializing vector store...");
 
-      // Initialize embeddings - using lightweight model for better performance
-      this.embeddings = new HuggingFaceTransformersEmbeddings({
-        modelName: "sentence-transformers/all-MiniLM-L6-v2",
-        // Use mock embeddings if model loading fails
-        fallbackToMockEmbeddings: true,
-      });
-
-      // Try to load existing vector store
+      // Try to use vector embeddings first
       try {
-        await fs.access(this.vectorStorePath);
-        console.log("Loading existing vector store...");
-        this.vectorStore = await FaissStore.load(
-          this.vectorStorePath,
-          this.embeddings
-        );
-        console.log("Vector store loaded successfully");
+        const {
+          HuggingFaceTransformersEmbeddings,
+        } = require("@langchain/community/embeddings/hf_transformers");
+
+        this.embeddings = new HuggingFaceTransformersEmbeddings({
+          modelName: "sentence-transformers/all-MiniLM-L6-v2",
+          fallbackToMockEmbeddings: true,
+        });
+
+        // Try to load existing vector store
+        try {
+          await fs.access(this.vectorStorePath);
+          console.log("Loading existing vector store...");
+          this.vectorStore = await FaissStore.load(
+            this.vectorStorePath,
+            this.embeddings
+          );
+          console.log("Vector store loaded successfully");
+        } catch (error) {
+          console.log(
+            "No existing vector store found, will create new one when documents are added"
+          );
+          this.vectorStore = null;
+        }
       } catch (error) {
         console.log(
-          "No existing vector store found, will create new one when documents are added"
+          "Vector embeddings failed, using text-based similarity fallback"
         );
-        this.vectorStore = null;
+        this.useTextFallback = true;
       }
 
       this.isInitialized = true;
       return true;
     } catch (error) {
       console.error("Error initializing vector store:", error);
-      // Fallback to mock implementation
+      // Use text fallback
+      this.useTextFallback = true;
       this.isInitialized = true;
       return false;
     }
@@ -57,9 +67,9 @@ class VectorStoreManager {
       await this.initialize();
     }
 
-    try {
-      const documents = [];
+    const documents = [];
 
+    try {
       for (const doc of processedDocuments) {
         for (let i = 0; i < doc.chunks.length; i++) {
           const chunk = doc.chunks[i];
@@ -81,6 +91,17 @@ class VectorStoreManager {
       console.log(
         `Adding ${documents.length} document chunks to vector store...`
       );
+
+      if (this.useTextFallback) {
+        // Store documents for text-based search
+        this.documents = documents;
+        console.log("Documents stored for text-based search fallback");
+        return {
+          success: true,
+          documentsAdded: documents.length,
+          message: `Successfully stored ${documents.length} document chunks for text search`,
+        };
+      }
 
       if (!this.vectorStore) {
         // Create new vector store
@@ -104,10 +125,15 @@ class VectorStoreManager {
       };
     } catch (error) {
       console.error("Error adding documents to vector store:", error);
+      // Fallback to text storage
+      this.useTextFallback = true;
+      this.documents = documents;
+      console.log("Switched to text-based fallback due to vector store error");
+
       return {
-        success: false,
-        error: error.message,
-        message: "Failed to add documents to vector store",
+        success: true,
+        documentsAdded: documents.length,
+        message: `Using text-based fallback: stored ${documents.length} document chunks`,
       };
     }
   }
@@ -117,9 +143,10 @@ class VectorStoreManager {
       await this.initialize();
     }
 
-    if (!this.vectorStore) {
-      console.warn("No vector store available, returning mock results");
-      return this.getMockSearchResults(query, k);
+    // Use text-based search if vector store is not available
+    if (this.useTextFallback || !this.vectorStore) {
+      console.log("Using text-based similarity search fallback");
+      return this.textBasedSearch(query, k);
     }
 
     try {
@@ -134,7 +161,8 @@ class VectorStoreManager {
       }));
     } catch (error) {
       console.error("Error in similarity search:", error);
-      return this.getMockSearchResults(query, k);
+      console.log("Fallback to text-based search");
+      return this.textBasedSearch(query, k);
     }
   }
 
@@ -143,9 +171,10 @@ class VectorStoreManager {
       await this.initialize();
     }
 
-    if (!this.vectorStore) {
-      console.warn("No vector store available, returning mock results");
-      return this.getMockSearchResults(query, k);
+    // Use text-based search if vector store is not available
+    if (this.useTextFallback || !this.vectorStore) {
+      console.log("Using text-based similarity search with score fallback");
+      return this.textBasedSearch(query, k);
     }
 
     try {
@@ -163,11 +192,84 @@ class VectorStoreManager {
       }));
     } catch (error) {
       console.error("Error in similarity search with scores:", error);
-      return this.getMockSearchResults(query, k);
+      console.log("Fallback to text-based search");
+      return this.textBasedSearch(query, k);
     }
   }
 
+  // Text-based similarity search fallback
+  textBasedSearch(query, k = 4) {
+    console.log(`DEBUG: this.documents status:`, {
+      exists: !!this.documents,
+      length: this.documents?.length || 0,
+      firstDoc:
+        this.documents?.[0]?.pageContent?.substring(0, 100) || "No content",
+    });
+
+    if (!this.documents || this.documents.length === 0) {
+      console.warn("No documents available for text search");
+      return this.getMockSearchResults(query, k);
+    }
+
+    const queryLower = query.toLowerCase();
+    const queryWords = queryLower
+      .split(/\s+/)
+      .filter((word) => word.length > 2);
+
+    console.log(`Text search for words: ${queryWords.join(", ")}`);
+
+    // Calculate text similarity scores
+    const scoredDocs = this.documents.map((doc) => {
+      const contentLower = doc.pageContent.toLowerCase();
+
+      // Count keyword matches
+      let score = 0;
+      let matchedWords = [];
+
+      queryWords.forEach((word) => {
+        if (contentLower.includes(word)) {
+          score += 1;
+          matchedWords.push(word);
+        }
+      });
+
+      // Bonus for exact phrase matches
+      if (contentLower.includes(queryLower)) {
+        score += queryWords.length;
+      }
+
+      // Normalize score
+      const relevanceScore = Math.min(score / queryWords.length, 1.0);
+
+      return {
+        content: doc.pageContent,
+        metadata: doc.metadata,
+        source: doc.metadata.source,
+        relevanceScore: relevanceScore,
+        matchedWords: matchedWords,
+      };
+    });
+
+    // Sort by relevance score and return top k
+    const results = scoredDocs
+      .filter((doc) => doc.relevanceScore > 0)
+      .sort((a, b) => b.relevanceScore - a.relevanceScore)
+      .slice(0, k);
+
+    console.log(`Text search found ${results.length} relevant documents`);
+    results.forEach((doc) => {
+      console.log(
+        `- ${doc.source}: ${doc.relevanceScore.toFixed(
+          2
+        )} (matched: ${doc.matchedWords.join(", ")})`
+      );
+    });
+
+    return results.length > 0 ? results : this.getMockSearchResults(query, k);
+  }
+
   getMockSearchResults(query, k) {
+    console.log("Using mock search results as last resort");
     // Mock results based on query keywords
     const mockResults = [
       {
